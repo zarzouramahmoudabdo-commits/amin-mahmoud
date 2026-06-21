@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Amin Mahmoud — صيانة موبايلات وتابلت</title>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/react-router-dom@6/umd/react-router-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: { 950:"#0A0A0C",900:"#0F0F12",850:"#15151A",800:"#1B1B22",700:"#26262F",600:"#34343F" },
+          brass: { 300:"#E8CD8A",400:"#D9B566",500:"#C9A227",600:"#A9831C" },
+          signal: { green:"#25D366", blue:"#3DA9FC" },
+        },
+        fontFamily: {
+          display: ["'Cairo'","sans-serif"],
+          body: ["'IBM Plex Sans Arabic'","'Cairo'","sans-serif"],
+          mono: ["'JetBrains Mono'","monospace"],
+        },
+        backgroundImage: {
+          "scan-line":"linear-gradient(90deg, transparent, rgba(201,162,39,0.6), transparent)",
+          "hairline-grid":"linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
+        },
+        animation: { scan:"scan 2.4s linear infinite", ticker:"ticker 22s linear infinite", "fade-up":"fade-up 0.5s ease forwards" },
+        keyframes: {
+          scan: { "0%":{transform:"translateX(-100%)"}, "100%":{transform:"translateX(100%)"} },
+          ticker: { "0%":{transform:"translateX(0)"}, "100%":{transform:"translateX(-50%)"} },
+          "fade-up": { "0%":{opacity:0,transform:"translateY(12px)"}, "100%":{opacity:1,transform:"translateY(0)"} },
+        },
+      },
+    },
+  };
+</script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+  * { -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; }
+  body { background-color:#0a0a0c; color:#f4f2ec; font-family:'IBM Plex Sans Arabic','Cairo',sans-serif; }
+  ::selection { background: rgba(201,162,39,0.35); }
+  ::-webkit-scrollbar { width:8px; height:8px; }
+  ::-webkit-scrollbar-track { background:#0f0f12; }
+  ::-webkit-scrollbar-thumb { background:#34343f; border-radius:4px; }
+  :focus-visible { outline:2px solid #c9a227; outline-offset:2px; }
+  .btn-primary { background:#c9a227; color:#0A0A0C; font-weight:700; border-radius:0.75rem; padding:0.875rem 1.5rem; transition:all .15s; box-shadow:0 0 0 1px rgba(201,162,39,0.3); }
+  .btn-primary:hover { background:#D9B566; }
+  .btn-primary:active { transform:scale(.98); }
+  .btn-ghost { border:1px solid #34343f; color:rgba(255,255,255,.9); font-weight:600; border-radius:0.75rem; padding:0.875rem 1.5rem; transition:all .15s; }
+  .btn-ghost:hover { border-color:rgba(201,162,39,.6); background:rgba(255,255,255,.05); }
+  .btn-ghost:active { transform:scale(.98); }
+  .panel { background:#15151A; border:1px solid #26262F; border-radius:1rem; }
+  .input-field { width:100%; background:#0F0F12; border:1px solid #34343f; border-radius:0.5rem; padding:0.625rem 0.875rem; font-size:.875rem; color:rgba(255,255,255,.9); }
+  .input-field::placeholder { color:rgba(255,255,255,.3); }
+  .input-field:focus { outline:none; border-color:rgba(201,162,39,.7); }
+  .label-eyebrow { font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:rgba(217,181,102,.8); font-family:'JetBrains Mono',monospace; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react,env">
+const { useState, useEffect, useMemo, useCallback, createContext, useContext, StrictMode } = React;
+const { HashRouter, Routes, Route, Link, NavLink, Navigate, useNavigate, Outlet } = ReactRouterDOM;
+
+// ===================== SEED DATA =====================
+const initialData = {
+  brands: [
+    { id:"b-xiaomi", name:"Xiaomi", logo:"📱", active:true, models:[
+      {id:"m-redmi-note-12", name:"Redmi Note 12"},
+      {id:"m-mi-11", name:"Mi 11"},
+      {id:"m-poco-x3", name:"Poco X3"},
+    ]},
+    { id:"b-samsung", name:"Samsung", logo:"📱", active:true, models:[
+      {id:"m-s23-ultra", name:"Galaxy S23 Ultra"},
+      {id:"m-a54", name:"Galaxy A54"},
+      {id:"m-note-20", name:"Galaxy Note 20"},
+    ]},
+    { id:"b-apple", name:"Apple", logo:"📱", active:true, models:[
+      {id:"m-iphone-13", name:"iPhone 13"},
+      {id:"m-iphone-14-pro", name:"iPhone 14 Pro"},
+      {id:"m-iphone-11", name:"iPhone 11"},
+    ]},
+    { id:"b-oppo", name:"Oppo", logo:"📱", active:true, models:[
+      {id:"m-reno-8", name:"Reno 8"},
+      {id:"m-a78", name:"A78"},
+    ]},
+  ],
+  services: [
+    { id:"s-screen", name:"Screen Replacement", icon:"🖥️", enabled:true, description:"Cracked or unresponsive screen, replaced with a tested original-quality panel.", price:"" },
+    { id:"s-battery", name:"Battery Replacement", icon:"🔋", enabled:true, description:"Fast battery drain or swelling? We swap in a fresh, certified battery.", price:"" },
+    { id:"s-charging", name:"Charging Port", icon:"🔌", enabled:true, description:"Loose connection or won't charge at all — port cleaning or full replacement.", price:"" },
+    { id:"s-software", name:"Software Repair", icon:"⚙️", enabled:true, description:"Boot loops, frozen screens, OS errors — diagnosed and fixed.", price:"" },
+    { id:"s-hardware", name:"Hardware Repair", icon:"🛠️", enabled:true, description:"Motherboard-level faults, buttons, speakers, and internal components.", price:"" },
+    { id:"s-camera", name:"Camera Repair", icon:"📷", enabled:true, description:"Blurry shots, black camera, or cracked lens — restored to sharp.", price:"" },
+    { id:"s-water", name:"Water Damage", icon:"💧", enabled:true, description:"Emergency cleaning and component-level recovery after liquid exposure.", price:"" },
+  ],
+  newsTicker: [
+    "🎉 خصم 15% على تغيير الشاشات هذا الأسبوع",
+    "⚡ صيانة سريعة خلال 30 دقيقة لمعظم الأعطال",
+    "🔋 ضمان 6 شهور على البطاريات الأصلية",
+  ],
+  whatsappTemplate: "مرحباً، أحتاج صيانة لجهاز {brand} {model} - المشكلة: {issue}",
+  settings: { siteName:"Amin Mahmoud", phoneNumber:"01060050431", whatsappNumber:"201060050431", theme:"dark" },
+  suggestions: {
+    "s-screen":"أغلب العملاء اللي عندهم نفس المشكلة بيحتاجوا تغيير الشاشة بالكامل.",
+    "s-battery":"في الغالب الحل هو استبدال البطارية بأخرى أصلية لضمان عمر أطول.",
+    "s-charging":"غالباً المشكلة في منفذ الشحن نفسه ويحتاج تنظيف أو استبدال.",
+    "s-software":"أغلب الحالات المشابهة بتتحل بإعادة ضبط النظام دون فقد البيانات.",
+    "s-hardware":"ينصح بفحص اللوحة الأم فوراً لتفادي تفاقم العطل.",
+    "s-camera":"غالباً يكون المطلوب استبدال وحدة الكاميرا بالكامل.",
+    "s-water":"يجب الفحص خلال 24 ساعة لتفادي تآكل الدوائر الداخلية.",
+  },
+};
+
+// ===================== STORE CONTEXT =====================
+const STORAGE_KEY = "amin_repair_store_v1";
+const AUTH_KEY = "amin_repair_admin_session_v1";
+const ADMIN_PASSWORD = "AMINm2468";
+const StoreContext = createContext(null);
+
+function loadStore() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return JSON.parse(JSON.stringify(initialData));
+    const parsed = JSON.parse(raw);
+    return { ...JSON.parse(JSON.stringify(initialData)), ...parsed };
+  } catch {
+    return JSON.parse(JSON.stringify(initialData));
+  }
+}
+
+function StoreProvider({ children }) {
+  const [data, setData] = useState(loadStore);
+  const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem(AUTH_KEY) === "true");
+
+  useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }, [data]);
+
+  const update = useCallback((updater) => {
+    setData((prev) => {
+      const clone = JSON.parse(JSON.stringify(prev));
+      const next = typeof updater === "function" ? updater(clone) : updater;
+      return next;
+    });
+  }, []);
+
+  const login = (password) => {
+    if (password === ADMIN_PASSWORD) {
+      localStorage.setItem(AUTH_KEY, "true");
+      setIsAdmin(true);
+      return true;
+    }
+    return false;
+  };
+  const logout = () => { localStorage.removeItem(AUTH_KEY); setIsAdmin(false); };
+
+  const addBrand = (brand) => update((d) => { d.brands.push({ id:`b-${Date.now()}`, models:[], active:true, logo:"📱", ...brand }); return d; });
+  const updateBrand = (id, patch) => update((d) => { d.brands = d.brands.map(b => b.id===id ? {...b,...patch} : b); return d; });
+  const deleteBrand = (id) => update((d) => { d.brands = d.brands.filter(b => b.id!==id); return d; });
+  const addModel = (brandId, modelName) => update((d) => { d.brands = d.brands.map(b => b.id===brandId ? {...b, models:[...b.models,{id:`m-${Date.now()}`,name:modelName}]} : b); return d; });
+  const deleteModel = (brandId, modelId) => update((d) => { d.brands = d.brands.map(b => b.id===brandId ? {...b, models:b.models.filter(m=>m.id!==modelId)} : b); return d; });
+
+  const updateService = (id, patch) => update((d) => { d.services = d.services.map(s => s.id===id ? {...s,...patch} : s); return d; });
+  const addService = (service) => update((d) => { d.services.push({ id:`s-${Date.now()}`, enabled:true, icon:"🔧", price:"", ...service }); return d; });
+  const deleteService = (id) => update((d) => { d.services = d.services.filter(s => s.id!==id); return d; });
+
+  const setTicker = (items) => update((d) => { d.newsTicker = items; return d; });
+  const setWhatsappTemplate = (tpl) => update((d) => { d.whatsappTemplate = tpl; return d; });
+  const updateSettings = (patch) => update((d) => { d.settings = {...d.settings, ...patch}; return d; });
+  const resetToDefaults = () => update(() => JSON.parse(JSON.stringify(initialData)));
+
+  const trackEvent = (type, payload = {}) => update((d) => {
+    if (!d.analytics) d.analytics = { whatsappClicks:0, callClicks:0, events:[] };
+    if (type==="whatsapp") d.analytics.whatsappClicks = (d.analytics.whatsappClicks||0)+1;
+    if (type==="call") d.analytics.callClicks = (d.analytics.callClicks||0)+1;
+    d.analytics.events = [{type, ...payload, ts:Date.now()}, ...(d.analytics.events||[])].slice(0,500);
+    return d;
+  });
+
+  const value = { data, isAdmin, login, logout, addBrand, updateBrand, deleteBrand, addModel, deleteModel,
+    updateService, addService, deleteService, setTicker, setWhatsappTemplate, updateSettings, resetToDefaults, trackEvent };
+
+  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+}
+
+function useStore() {
+  const ctx = useContext(StoreContext);
+  if (!ctx) throw new Error("useStore must be used inside StoreProvider");
+  return ctx;
+}
+
+// ===================== SHARED COMPONENTS =====================
+function NewsTicker() {
+  const { data } = useStore();
+  const items = data.newsTicker?.length ? data.newsTicker : ["—"];
+  const loop = [...items, ...items];
+  return (
+    <div className="relative bg-ink-900 border-y border-ink-700 overflow-hidden">
+      <div className="absolute inset-0 bg-scan-line bg-[length:50%_100%] animate-scan opacity-30 pointer-events-none" />
+      <div className="flex whitespace-nowrap py-2.5 animate-ticker">
+        {loop.map((item, i) => (
+          <span key={i} className="mx-8 text-sm text-brass-300/90 font-medium flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-brass-500 inline-block" />{item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FloatingContact() {
+  const { data, trackEvent } = useStore();
+  const { phoneNumber, whatsappNumber } = data.settings;
+  const waLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent("مرحباً، أريد الاستفسار عن خدمة الصيانة.")}`;
+  return (
+    <>
+      <div className="hidden md:flex flex-col gap-3 fixed bottom-6 left-6 z-40">
+        <a href={waLink} target="_blank" rel="noreferrer" onClick={() => trackEvent("whatsapp",{source:"floating"})}
+          className="w-14 h-14 rounded-full bg-signal-green flex items-center justify-center text-2xl shadow-lg shadow-signal-green/30 hover:scale-110 transition-transform" aria-label="WhatsApp">💬</a>
+        <a href={`tel:${phoneNumber}`} onClick={() => trackEvent("call",{source:"floating"})}
+          className="w-14 h-14 rounded-full bg-brass-500 flex items-center justify-center text-2xl shadow-lg shadow-brass-500/30 hover:scale-110 transition-transform" aria-label="Call">📞</a>
+      </div>
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-ink-900/95 backdrop-blur border-t border-ink-700 flex">
+        <a href={`tel:${phoneNumber}`} onClick={() => trackEvent("call",{source:"bottom-bar"})}
+          className="flex-1 flex items-center justify-center gap-2 py-3.5 text-brass-400 font-semibold border-l border-ink-700">📞 اتصل الآن</a>
+        <a href={waLink} target="_blank" rel="noreferrer" onClick={() => trackEvent("whatsapp",{source:"bottom-bar"})}
+          className="flex-1 flex items-center justify-center gap-2 py-3.5 text-signal-green font-semibold">💬 واتساب</a>
+      </div>
+    </>
+  );
+}
+
+function ProtectedRoute({ children }) {
+  const { isAdmin } = useStore();
+  if (!isAdmin) return <Navigate to="/admin/login" replace />;
+  return children;
+}
+
+// ===================== HERO / QUICK ACTIONS =====================
+function Hero() {
+  const { data, trackEvent } = useStore();
+  const { siteName, phoneNumber, whatsappNumber } = data.settings;
+  const waLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent("مرحباً، أريد صيانة جهازي.")}`;
+  const scrollToFlow = () => document.getElementById("repair-flow")?.scrollIntoView({behavior:"smooth"});
+  return (
+    <section className="relative overflow-hidden border-b border-ink-700">
+      <div className="absolute inset-0 bg-hairline-grid bg-[length:36px_36px] opacity-40" />
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-brass-500/10 rounded-full blur-3xl" />
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-signal-blue/10 rounded-full blur-3xl" />
+      <div className="relative max-w-3xl mx-auto px-4 pt-14 pb-16 text-center" dir="rtl">
+        <div className="inline-flex items-center gap-2 mb-6">
+          <div className="w-9 h-9 rounded-lg bg-brass-500 text-ink-950 font-display font-extrabold flex items-center justify-center">أم</div>
+          <span className="font-display font-bold text-lg tracking-tight">{siteName}</span>
+        </div>
+        <h1 className="font-display font-extrabold text-3xl sm:text-4xl leading-tight mb-3">
+          صيانة موبايلات بمعايير <span className="text-brass-400">احترافية</span>
+        </h1>
+        <p className="text-white/55 text-sm sm:text-base max-w-md mx-auto mb-8">
+          اختر جهازك، حدد العطل، واطلب الصيانة في أقل من دقيقة — بدون أي كتابة.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <button onClick={scrollToFlow} className="btn-primary">ابدأ الصيانة</button>
+          <a href={waLink} target="_blank" rel="noreferrer" onClick={() => trackEvent("whatsapp",{source:"hero"})} className="btn-ghost">💬 واتساب الآن</a>
+          <a href={`tel:${phoneNumber}`} onClick={() => trackEvent("call",{source:"hero"})} className="btn-ghost">📞 اتصل الآن</a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function QuickActions() {
+  const actions = [
+    {icon:"🖥️",label:"إصلاح الشاشة"}, {icon:"🔋",label:"تغيير البطارية"},
+    {icon:"⚙️",label:"إصلاح برمجي"}, {icon:"🔍",label:"تشخيص الجهاز"},
+  ];
+  const scrollToFlow = () => document.getElementById("repair-flow")?.scrollIntoView({behavior:"smooth"});
+  return (
+    <section className="max-w-3xl mx-auto px-4 py-6" dir="rtl">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {actions.map((a) => (
+          <button key={a.label} onClick={scrollToFlow}
+            className="panel hover:border-brass-500/50 hover:bg-white/5 transition-all p-4 flex flex-col items-center gap-2 text-center">
+            <span className="text-2xl">{a.icon}</span>
+            <span className="text-xs font-semibold text-white/80">{a.label}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ===================== SMART REPAIR FLOW =====================
+function RepairFlow() {
+  const { data, trackEvent } = useStore();
+  const steps = ["brand","model","issue","action"];
+  const stepLabels = { brand:"اختر الماركة", model:"اختر الموديل", issue:"اختر العطل", action:"تواصل الآن" };
+  const [stepIndex, setStepIndex] = useState(0);
+  const [brand, setBrand] = useState(null);
+  const [model, setModel] = useState(null);
+  const [issue, setIssue] = useState(null);
+
+  const activeBrands = data.brands.filter(b => b.active);
+  const enabledServices = data.services.filter(s => s.enabled);
+  const suggestion = issue ? data.suggestions?.[issue.id] : null;
+
+  const message = useMemo(() => {
+    if (!brand || !model || !issue) return "";
+    return data.whatsappTemplate.replace("{brand}",brand.name).replace("{model}",model.name).replace("{issue}",issue.name);
+  }, [brand, model, issue, data.whatsappTemplate]);
+
+  const waLink = `https://wa.me/${data.settings.whatsappNumber}?text=${encodeURIComponent(message)}`;
+  const goTo = (i) => setStepIndex(Math.max(0, Math.min(steps.length-1, i)));
+  const reset = () => { setBrand(null); setModel(null); setIssue(null); setStepIndex(0); };
+
+  return (
+    <section id="repair-flow" className="relative z-10 max-w-3xl mx-auto px-4 py-10">
+      <div className="flex items-center justify-between mb-8" dir="rtl">
+        {steps.map((s,i) => (
+          <div key={s} className="flex-1 flex items-center">
+            <div className="flex flex-col items-center gap-1.5 flex-1">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-mono transition-colors ${i<=stepIndex ? "bg-brass-500 text-ink-950" : "bg-ink-800 text-white/40 border border-ink-600"}`}>{i+1}</div>
+              <span className={`text-[11px] ${i<=stepIndex ? "text-brass-300" : "text-white/30"}`}>{stepLabels[s]}</span>
+            </div>
+            {i < steps.length-1 && <div className={`h-px flex-1 -mt-5 ${i<stepIndex ? "bg-brass-500" : "bg-ink-700"}`} />}
+          </div>
+        ))}
+      </div>
+
+      <div className="panel p-6 min-h-[280px]" dir="rtl">
+        {stepIndex===0 && (
+          <div className="animate-fade-up">
+            <h3 className="label-eyebrow mb-4">الخطوة الأولى</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {activeBrands.map((b) => (
+                <button key={b.id} onClick={() => { setBrand(b); setModel(null); goTo(1); }}
+                  className="panel hover:border-brass-500/60 hover:bg-white/5 transition-all p-4 flex flex-col items-center gap-2 text-center">
+                  <span className="text-3xl">{b.logo}</span><span className="font-semibold text-sm">{b.name}</span>
+                </button>
+              ))}
+              {activeBrands.length===0 && <p className="col-span-full text-white/50 text-sm">لا توجد ماركات متاحة حالياً.</p>}
+            </div>
+          </div>
+        )}
+
+        {stepIndex===1 && brand && (
+          <div className="animate-fade-up">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="label-eyebrow">موديلات {brand.name}</h3>
+              <button onClick={() => goTo(0)} className="text-xs text-white/50 hover:text-brass-400">← رجوع</button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {brand.models.map((m) => (
+                <button key={m.id} onClick={() => { setModel(m); goTo(2); }}
+                  className="panel hover:border-brass-500/60 hover:bg-white/5 transition-all p-4 text-sm font-semibold text-center">{m.name}</button>
+              ))}
+              {brand.models.length===0 && <p className="col-span-full text-white/50 text-sm">لا توجد موديلات مضافة لهذه الماركة.</p>}
+            </div>
+          </div>
+        )}
+
+        {stepIndex===2 && (
+          <div className="animate-fade-up">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="label-eyebrow">نوع العطل</h3>
+              <button onClick={() => goTo(1)} className="text-xs text-white/50 hover:text-brass-400">← رجوع</button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {enabledServices.map((s) => (
+                <button key={s.id} onClick={() => { setIssue(s); goTo(3); }}
+                  className="panel hover:border-brass-500/60 hover:bg-white/5 transition-all p-4 flex flex-col items-center gap-2 text-center">
+                  <span className="text-2xl">{s.icon}</span><span className="font-semibold text-xs">{s.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {stepIndex===3 && brand && model && issue && (
+          <div className="animate-fade-up" dir="rtl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="label-eyebrow">جاهز للتواصل</h3>
+              <button onClick={() => goTo(2)} className="text-xs text-white/50 hover:text-brass-400">← رجوع</button>
+            </div>
+            <div className="bg-ink-900 border border-ink-600 rounded-xl p-4 mb-4 font-mono text-sm text-white/80 leading-relaxed">{message}</div>
+            {suggestion && (
+              <div className="border border-brass-500/30 bg-brass-500/5 rounded-xl p-3.5 mb-5 text-sm text-brass-200 flex gap-2">
+                <span>💡</span><span>{suggestion}</span>
+              </div>
+            )}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <a href={waLink} target="_blank" rel="noreferrer"
+                onClick={() => trackEvent("whatsapp",{brand:brand.name,model:model.name,issue:issue.name})}
+                className="flex-1 text-center bg-signal-green text-ink-950 font-bold rounded-xl px-6 py-3.5 hover:brightness-110 active:scale-[0.98] transition-all">💬 إرسال عبر واتساب</a>
+              <a href={`tel:${data.settings.phoneNumber}`}
+                onClick={() => trackEvent("call",{brand:brand.name,model:model.name,issue:issue.name})}
+                className="flex-1 text-center btn-primary">📞 اتصل الآن</a>
+            </div>
+            <button onClick={reset} className="mt-4 text-xs text-white/40 hover:text-white/70 mx-auto block">بدء طلب جديد</button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ===================== HOME PAGE =====================
+function Home() {
+  return (
+    <div className="min-h-screen pb-20 md:pb-0">
+      <Hero />
+      <NewsTicker />
+      <QuickActions />
+      <RepairFlow />
+      <FloatingContact />
+      <footer className="text-center py-10 text-white/30 text-xs flex flex-col items-center gap-2" dir="rtl">
+        <p>© {new Date().getFullYear()} Amin Mahmoud — جميع الحقوق محفوظة</p>
+        <Link to="/admin/login" className="hover:text-brass-400 transition-colors">لوحة التحكم</Link>
+      </footer>
+    </div>
+  );
+}
+
+// ===================== ADMIN LOGIN =====================
+function AdminLogin() {
+  const { login, isAdmin } = useStore();
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+  if (isAdmin) navigate("/admin", { replace:true });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (login(password)) navigate("/admin", { replace:true });
+    else setError("كلمة المرور غير صحيحة");
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 bg-hairline-grid bg-[length:36px_36px]">
+      <form onSubmit={handleSubmit} className="panel p-8 w-full max-w-sm" dir="rtl">
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 rounded-xl bg-brass-500 text-ink-950 font-display font-extrabold flex items-center justify-center mx-auto mb-3">أم</div>
+          <h1 className="font-display font-bold text-lg">دخول لوحة التحكم</h1>
+          <p className="text-white/40 text-xs mt-1">Amin Mahmoud Admin</p>
+        </div>
+        <label className="label-eyebrow block mb-2">كلمة المرور</label>
+        <input type="password" autoFocus value={password}
+          onChange={(e) => { setPassword(e.target.value); setError(""); }}
+          className="input-field mb-2" placeholder="••••••••" />
+        {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
+        <button type="submit" className="btn-primary w-full mt-4">دخول</button>
+      </form>
+    </div>
+  );
+}
+
+// ===================== ADMIN DASHBOARD SHELL =====================
+function AdminDashboard() {
+  const { logout, data } = useStore();
+  const navigate = useNavigate();
+  const navItems = [
+    { to:"/admin", end:true, label:"نظرة عامة", icon:"📊" },
+    { to:"/admin/brands", label:"الماركات والموديلات", icon:"📱" },
+    { to:"/admin/services", label:"خدمات الصيانة", icon:"🔧" },
+    { to:"/admin/ticker", label:"الشريط الإخباري", icon:"📰" },
+    { to:"/admin/whatsapp", label:"رسائل واتساب", icon:"💬" },
+    { to:"/admin/settings", label:"الإعدادات العامة", icon:"⚙️" },
+  ];
+  const handleLogout = () => { logout(); navigate("/"); };
+
+  return (
+    <div className="min-h-screen flex" dir="rtl">
+      <aside className="w-60 shrink-0 bg-ink-900 border-l border-ink-700 hidden md:flex flex-col">
+        <div className="p-5 border-b border-ink-700 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-brass-500 text-ink-950 font-display font-extrabold flex items-center justify-center text-sm">أم</div>
+          <div>
+            <p className="font-display font-bold text-sm leading-none">{data.settings.siteName}</p>
+            <p className="text-[10px] text-white/35 mt-1">لوحة التحكم</p>
+          </div>
+        </div>
+        <nav className="flex-1 p-3 space-y-1">
+          {navItems.map((item) => (
+            <NavLink key={item.to} to={item.to} end={item.end}
+              className={({isActive}) => `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? "bg-brass-500/15 text-brass-300" : "text-white/60 hover:bg-white/5 hover:text-white"}`}>
+              <span>{item.icon}</span>{item.label}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="p-3 border-t border-ink-700">
+          <NavLink to="/" className="block text-xs text-white/40 hover:text-brass-400 px-3 py-2">← عرض الموقع</NavLink>
+          <button onClick={handleLogout} className="w-full text-right text-xs text-red-400/80 hover:text-red-400 px-3 py-2">تسجيل الخروج</button>
+        </div>
+      </aside>
+
+      <div className="md:hidden fixed top-0 inset-x-0 z-30 bg-ink-900 border-b border-ink-700 p-3 flex items-center justify-between">
+        <span className="font-display font-bold text-sm">لوحة التحكم</span>
+        <button onClick={handleLogout} className="text-xs text-red-400">خروج</button>
+      </div>
+
+      <main className="flex-1 min-w-0 p-4 md:p-8 pt-16 md:pt-8 pb-24 md:pb-8"><Outlet /></main>
+
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-ink-900 border-t border-ink-700 flex overflow-x-auto">
+        {navItems.map((item) => (
+          <NavLink key={item.to} to={item.to} end={item.end}
+            className={({isActive}) => `flex-1 min-w-[68px] flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium ${isActive ? "text-brass-400" : "text-white/50"}`}>
+            <span className="text-lg leading-none">{item.icon}</span>{item.label}
+          </NavLink>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
+// ===================== ADMIN: ANALYTICS =====================
+function Stat({ label, value, icon }) {
+  return (
+    <div className="panel p-5">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-2xl">{icon}</span>
+        <span className="font-mono text-2xl font-bold text-brass-400">{value}</span>
+      </div>
+      <p className="text-xs text-white/50">{label}</p>
+    </div>
+  );
+}
+
+function Analytics() {
+  const { data } = useStore();
+  const analytics = data.analytics || { whatsappClicks:0, callClicks:0, events:[] };
+
+  const topModels = useMemo(() => {
+    const counts = {};
+    (analytics.events||[]).forEach(e => { if (e.model) counts[e.model] = (counts[e.model]||0)+1; });
+    return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  }, [analytics.events]);
+
+  const topIssues = useMemo(() => {
+    const counts = {};
+    (analytics.events||[]).forEach(e => { if (e.issue) counts[e.issue] = (counts[e.issue]||0)+1; });
+    return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  }, [analytics.events]);
+
+  return (
+    <div>
+      <h1 className="font-display font-bold text-xl mb-1">نظرة عامة</h1>
+      <p className="text-white/40 text-sm mb-6">إحصائيات التفاعل مع الموقع</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+        <Stat label="نقرات واتساب" value={analytics.whatsappClicks||0} icon="💬" />
+        <Stat label="نقرات الاتصال" value={analytics.callClicks||0} icon="📞" />
+        <Stat label="إجمالي الطلبات" value={(analytics.events||[]).length} icon="📈" />
+      </div>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="panel p-5">
+          <h2 className="label-eyebrow mb-3">الموديلات الأكثر طلباً</h2>
+          {topModels.length===0 && <p className="text-white/40 text-sm">لا توجد بيانات بعد.</p>}
+          <ul className="space-y-2">
+            {topModels.map(([name,count]) => (
+              <li key={name} className="flex items-center justify-between text-sm">
+                <span className="text-white/80">{name}</span><span className="font-mono text-brass-400">{count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="panel p-5">
+          <h2 className="label-eyebrow mb-3">الأعطال الأكثر شيوعاً</h2>
+          {topIssues.length===0 && <p className="text-white/40 text-sm">لا توجد بيانات بعد.</p>}
+          <ul className="space-y-2">
+            {topIssues.map(([name,count]) => (
+              <li key={name} className="flex items-center justify-between text-sm">
+                <span className="text-white/80">{name}</span><span className="font-mono text-brass-400">{count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===================== ADMIN: BRANDS MANAGER =====================
+function BrandsManager() {
+  const { data, addBrand, updateBrand, deleteBrand, addModel, deleteModel } = useStore();
+  const [newBrandName, setNewBrandName] = useState("");
+  const [newModelName, setNewModelName] = useState({});
+  const [expanded, setExpanded] = useState(null);
+
+  const handleAddBrand = (e) => { e.preventDefault(); if (!newBrandName.trim()) return; addBrand({name:newBrandName.trim()}); setNewBrandName(""); };
+  const handleAddModel = (brandId) => {
+    const name = (newModelName[brandId]||"").trim();
+    if (!name) return;
+    addModel(brandId, name);
+    setNewModelName(p => ({...p, [brandId]:""}));
+  };
+
+  return (
+    <div>
+      <h1 className="font-display font-bold text-xl mb-1">الماركات والموديلات</h1>
+      <p className="text-white/40 text-sm mb-6">أضف الماركات وفعّل/عطّل كل منها، وأضف الموديلات تحت كل ماركة.</p>
+      <form onSubmit={handleAddBrand} className="flex gap-2 mb-6">
+        <input value={newBrandName} onChange={(e)=>setNewBrandName(e.target.value)} placeholder="اسم الماركة الجديدة (مثال: Huawei)" className="input-field max-w-xs" />
+        <button type="submit" className="btn-primary px-5 py-2.5 text-sm">+ إضافة ماركة</button>
+      </form>
+      <div className="space-y-3">
+        {data.brands.map((brand) => (
+          <div key={brand.id} className="panel p-4">
+            <div className="flex items-center justify-between gap-3">
+              <button onClick={() => setExpanded(expanded===brand.id ? null : brand.id)} className="flex items-center gap-2 flex-1 text-right">
+                <span className="text-xl">{brand.logo}</span><span className="font-semibold">{brand.name}</span>
+                <span className="text-xs text-white/40">({brand.models.length} موديل)</span>
+              </button>
+              <label className="flex items-center gap-1.5 text-xs text-white/50 cursor-pointer">
+                <input type="checkbox" checked={brand.active} onChange={(e)=>updateBrand(brand.id,{active:e.target.checked})} className="accent-brass-500" /> مفعّل
+              </label>
+              <button onClick={() => { if (confirm(`حذف ${brand.name}؟`)) deleteBrand(brand.id); }} className="text-red-400/70 hover:text-red-400 text-xs">حذف</button>
+            </div>
+            {expanded===brand.id && (
+              <div className="mt-4 pt-4 border-t border-ink-700">
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {brand.models.map((m) => (
+                    <span key={m.id} className="bg-ink-900 border border-ink-600 rounded-full px-3 py-1 text-xs flex items-center gap-2">
+                      {m.name}
+                      <button onClick={() => deleteModel(brand.id, m.id)} className="text-red-400/70 hover:text-red-400">×</button>
+                    </span>
+                  ))}
+                  {brand.models.length===0 && <span className="text-white/30 text-xs">لا توجد موديلات بعد</span>}
+                </div>
+                <div className="flex gap-2">
+                  <input value={newModelName[brand.id]||""} onChange={(e)=>setNewModelName(p=>({...p,[brand.id]:e.target.value}))}
+                    placeholder="اسم الموديل الجديد" className="input-field max-w-xs text-xs"
+                    onKeyDown={(e)=> e.key==="Enter" && handleAddModel(brand.id)} />
+                  <button onClick={() => handleAddModel(brand.id)} className="btn-ghost px-4 py-2 text-xs">+ إضافة موديل</button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ===================== ADMIN: SERVICES MANAGER =====================
+function ServicesManager() {
+  const { data, updateService, addService, deleteService } = useStore();
+  const [newName, setNewName] = useState("");
+  const handleAdd = (e) => { e.preventDefault(); if (!newName.trim()) return; addService({name:newName.trim(), description:""}); setNewName(""); };
+
+  return (
+    <div>
+      <h1 className="font-display font-bold text-xl mb-1">خدمات الصيانة</h1>
+      <p className="text-white/40 text-sm mb-6">عدّل الأوصاف والأسعار، وفعّل أو عطّل أي خدمة.</p>
+      <form onSubmit={handleAdd} className="flex gap-2 mb-6">
+        <input value={newName} onChange={(e)=>setNewName(e.target.value)} placeholder="اسم خدمة جديدة" className="input-field max-w-xs" />
+        <button type="submit" className="btn-primary px-5 py-2.5 text-sm">+ إضافة خدمة</button>
+      </form>
+      <div className="space-y-3">
+        {data.services.map((s) => (
+          <div key={s.id} className="panel p-4 grid sm:grid-cols-[auto_1fr_auto_auto] gap-3 items-start">
+            <span className="text-2xl">{s.icon}</span>
+            <div className="space-y-2">
+              <input value={s.name} onChange={(e)=>updateService(s.id,{name:e.target.value})} className="input-field font-semibold" />
+              <textarea value={s.description} onChange={(e)=>updateService(s.id,{description:e.target.value})} rows={2} placeholder="وصف الخدمة" className="input-field text-xs resize-none" />
+              <input value={s.price} onChange={(e)=>updateService(s.id,{price:e.target.value})} placeholder="السعر (اختياري)" className="input-field text-xs max-w-[160px]" />
+            </div>
+            <label className="flex items-center gap-1.5 text-xs text-white/50 cursor-pointer whitespace-nowrap">
+              <input type="checkbox" checked={s.enabled} onChange={(e)=>updateService(s.id,{enabled:e.target.checked})} className="accent-brass-500" /> مفعّلة
+            </label>
+            <button onClick={() => { if (confirm(`حذف ${s.name}؟`)) deleteService(s.id); }} className="text-red-400/70 hover:text-red-400 text-xs">حذف</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ===================== ADMIN: NEWS TICKER MANAGER =====================
+function NewsTickerManager() {
+  const { data, setTicker } = useStore();
+  const [items, setItems] = useState(data.newsTicker);
+  const [newItem, setNewItem] = useState("");
+  const save = (next) => { setItems(next); setTicker(next); };
+  const handleAdd = (e) => { e.preventDefault(); if (!newItem.trim()) return; save([...items, newItem.trim()]); setNewItem(""); };
+  const handleRemove = (i) => save(items.filter((_,idx)=>idx!==i));
+  const handleEdit = (i, value) => { const next=[...items]; next[i]=value; setItems(next); };
+
+  return (
+    <div>
+      <h1 className="font-display font-bold text-xl mb-1">الشريط الإخباري</h1>
+      <p className="text-white/40 text-sm mb-6">عروض، خصومات، أو تنبيهات تظهر في شريط متحرك أعلى الموقع.</p>
+      <form onSubmit={handleAdd} className="flex gap-2 mb-6">
+        <input value={newItem} onChange={(e)=>setNewItem(e.target.value)} placeholder="رسالة جديدة، مثال: خصم 10% هذا الأسبوع" className="input-field" />
+        <button type="submit" className="btn-primary px-5 py-2.5 text-sm whitespace-nowrap">+ إضافة</button>
+      </form>
+      <div className="space-y-2">
+        {items.map((item, i) => (
+          <div key={i} className="panel p-3 flex items-center gap-2">
+            <input value={item} onChange={(e)=>handleEdit(i,e.target.value)} onBlur={()=>save(items)} className="input-field flex-1" />
+            <button onClick={() => handleRemove(i)} className="text-red-400/70 hover:text-red-400 text-xs px-2">حذف</button>
+          </div>
+        ))}
+        {items.length===0 && <p className="text-white/40 text-sm">لا توجد رسائل بعد.</p>}
+      </div>
+    </div>
+  );
+}
+
+// ===================== ADMIN: WHATSAPP TEMPLATE =====================
+function WhatsappTemplates() {
+  const { data, setWhatsappTemplate } = useStore();
+  const [tpl, setTpl] = useState(data.whatsappTemplate);
+  const [saved, setSaved] = useState(false);
+  const preview = tpl.replace("{brand}","Samsung").replace("{model}","Galaxy S23 Ultra").replace("{issue}","تغيير الشاشة");
+  const handleSave = () => { setWhatsappTemplate(tpl); setSaved(true); setTimeout(()=>setSaved(false),1500); };
+
+  return (
+    <div>
+      <h1 className="font-display font-bold text-xl mb-1">رسائل واتساب التلقائية</h1>
+      <p className="text-white/40 text-sm mb-6">
+        استخدم المتغيرات <code className="text-brass-400">{"{brand}"}</code> <code className="text-brass-400">{"{model}"}</code> <code className="text-brass-400">{"{issue}"}</code> داخل النص.
+      </p>
+      <div className="panel p-5 max-w-xl">
+        <label className="label-eyebrow block mb-2">نص الرسالة</label>
+        <textarea value={tpl} onChange={(e)=>setTpl(e.target.value)} rows={3} className="input-field mb-4" />
+        <button onClick={handleSave} className="btn-primary px-5 py-2.5 text-sm">{saved ? "تم الحفظ ✓" : "حفظ"}</button>
+        <div className="mt-6">
+          <p className="label-eyebrow mb-2">معاينة</p>
+          <div className="bg-ink-900 border border-ink-600 rounded-xl p-4 font-mono text-sm text-white/80">{preview}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===================== ADMIN: SETTINGS =====================
+function SettingsPage() {
+  const { data, updateSettings, resetToDefaults } = useStore();
+  const [form, setForm] = useState(data.settings);
+  const [saved, setSaved] = useState(false);
+  const handleChange = (key, value) => setForm(f => ({...f, [key]:value}));
+  const handleSave = () => { updateSettings(form); setSaved(true); setTimeout(()=>setSaved(false),1500); };
+  const handleReset = () => {
+    if (confirm("سيتم إرجاع كل البيانات (الماركات، الخدمات، الإعدادات) للوضع الافتراضي. متابعة؟")) {
+      resetToDefaults(); setForm(data.settings);
+    }
+  };
+
+  return (
+    <div>
+      <h1 className="font-display font-bold text-xl mb-1">الإعدادات العامة</h1>
+      <p className="text-white/40 text-sm mb-6">بيانات التواصل واسم الموقع.</p>
+      <div className="panel p-5 max-w-md space-y-4">
+        <div><label className="label-eyebrow block mb-2">اسم الموقع</label>
+          <input value={form.siteName} onChange={(e)=>handleChange("siteName",e.target.value)} className="input-field" /></div>
+        <div><label className="label-eyebrow block mb-2">رقم الهاتف</label>
+          <input value={form.phoneNumber} onChange={(e)=>handleChange("phoneNumber",e.target.value)} className="input-field" placeholder="01060050431" /></div>
+        <div><label className="label-eyebrow block mb-2">رقم واتساب (بصيغة دولية بدون +)</label>
+          <input value={form.whatsappNumber} onChange={(e)=>handleChange("whatsappNumber",e.target.value)} className="input-field" placeholder="201060050431" /></div>
+        <button onClick={handleSave} className="btn-primary px-5 py-2.5 text-sm">{saved ? "تم الحفظ ✓" : "حفظ التغييرات"}</button>
+      </div>
+      <div className="panel p-5 max-w-md mt-6 border-red-500/20">
+        <h2 className="text-sm font-semibold text-red-400 mb-2">منطقة خطرة</h2>
+        <p className="text-xs text-white/40 mb-3">إرجاع كل البيانات (الماركات، الموديلات، الخدمات، الإحصائيات) إلى القيم الافتراضية. هذا الإجراء لا يمكن التراجع عنه.</p>
+        <button onClick={handleReset} className="text-xs border border-red-500/40 text-red-400 rounded-lg px-4 py-2 hover:bg-red-500/10">إعادة ضبط المصنع</button>
+      </div>
+    </div>
+  );
+}
+
+// ===================== APP =====================
+function App() {
+  return (
+    <StoreProvider>
+      <HashRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>}>
+            <Route index element={<Analytics />} />
+            <Route path="brands" element={<BrandsManager />} />
+            <Route path="services" element={<ServicesManager />} />
+            <Route path="ticker" element={<NewsTickerManager />} />
+            <Route path="whatsapp" element={<WhatsappTemplates />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
+        </Routes>
+      </HashRouter>
+    </StoreProvider>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<StrictMode><App /></StrictMode>);
+</script>
+</body>
+</html>
